@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Data Analysis with R</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Data Analysis with R">
+  <meta name="author" content="Mykola Pavlov">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Data Analysis with R</h1>
+    <h2>Foundations for inference</h2>
+    <p>Mykola Pavlov<br/>Data Scientist at Azzurro.io</p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Course Logistic</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Every Wednesday 19:00 - 21:00</li>
+<li>Slides: <a href="http://nikolaypavlov.github.io/da-workshops-5/">http://nikolaypavlov.github.io/da-workshops-5/</a></li>
+<li>Skype Chat: <a href="https://join.skype.com/gjN0CfAd4bhg">https://join.skype.com/gjN0CfAd4bhg</a></li>
+<li>Reference Book: <a href="https://www.openintro.org/stat/textbook.php">https://www.openintro.org/stat/textbook.php</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Resampling_(statistics">Resampling methods</a></li>
+<li>Install the following packages: openintro, ggplot2, dplyr</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Topics</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Point estimates</li>
+<li>Confidence intervals</li>
+<li>Bootstrap</li>
+<li>Hypothesis testing framework</li>
+<li>Hypothesis testing using confidence intervals</li>
+<li>Decision errors</li>
+<li>Hypothesis testing using p-values</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>Point estimates and variability</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>What is the average depth of quakes near Fiji?</li>
+<li>Waht is the average magnitude of quakes near Fiji?</li>
+</ul>
+
+<pre><code class="r">qplot(data = quakes, x = lat, y = long, size = exp(mag), color = mag, alpha = I(.5))
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Point estimates and variability</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">set.seed(3)
+quakes_smp &lt;- quakes[sample(1:nrow(quakes), 50), ]
+c(mean(quakes_smp$depth), mean(quakes_smp$mag))
+</code></pre>
+
+<pre><code>## [1] 323.520   4.626
+</code></pre>
+
+<pre><code class="r">options(stringsAsFactors=F)
+est &lt;- data.frame(mag=&#39;mean&#39;, estimate=mean(quakes_smp$mag), parameter=mean(quakes$mag))
+est &lt;- rbind(est, c(&#39;median&#39;, median(quakes_smp$mag), median(quakes$mag)))
+est &lt;- rbind(est, c(&#39;st.dev&#39;, sd(quakes_smp$mag), sd(quakes$mag)))
+est
+</code></pre>
+
+<pre><code>##      mag          estimate         parameter
+## 1   mean             4.626            4.6204
+## 2 median               4.6               4.6
+## 3 st.dev 0.428004386778969 0.402772970873253
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-5" style="background:;">
+  <hgroup>
+    <h2>Point estimates and variability</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">running_mean &lt;- sapply(1:1000, function(i) mean(sample(quakes$mag, i)))
+plot(running_mean, type=&quot;l&quot;, xlab=&quot;Sample size&quot;, ylab=&quot;Estimate of magnitude mean&quot;)
+abline(h=mean(quakes$mag), col=&quot;red&quot;, lwd=3)
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-6" style="background:;">
+  <hgroup>
+    <h2>Standard error of the mean: \(SE_{\overline{x}} = \frac{s}{\sqrt{n}}\)</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">set.seed(10)
+sampling_mean &lt;- sapply(1:1000, function(x) mean(sample(quakes$mag, 50)))
+hist(sampling_mean, breaks=50, main=&quot;Sampling distribution&quot;, xlab=&quot;Sample mean&quot;)
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-7" style="background:;">
+  <hgroup>
+    <h2>95% confidence interval: \(\overline{x} \pm 1.96 \times SE_{\overline{x}}\)</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">set.seed(10)
+sampling_mean &lt;- sapply(1:100500, function(x) mean(sample(quakes$mag, 50)))
+hist(sampling_mean, breaks=50, main=&quot;Sampling distribution&quot;, xlab=&quot;Sample mean&quot;)
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-8" style="background:;">
+  <hgroup>
+    <h2>What about practice?</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Important conditions to ensure \(\overline{x}\) sampling distrubtion is normal and \(SE_\overline{x}\) is accurate:</p>
+
+<ul>
+<li>The sample observations are independent
+
+<ul>
+<li>If the observations are from a simple random sample and n &lt; 10% of the population, then they are independent.</li>
+<li>Subjects in an experiment are considered independent if they undergo random assignment to the treatment groups.</li>
+</ul></li>
+<li>The sample size is large: n &gt; 30 is a good rule of thumb
+
+<ul>
+<li>If not use t-statistics</li>
+</ul></li>
+<li>The population distribution is not strongly skewed
+
+<ul>
+<li>When there are prominent outliers present, the sample should contain at least 100 observations, and in some cases, much more.</li>
+<li>Use bootstrap-t</li>
+</ul></li>
+</ul>
+
+<p>Use your best judgement.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-9" style="background:;">
+  <hgroup>
+    <h2>Interpreting confidence intervals</h2>
+  </hgroup>
+  <article data-timings="">
+    <h3>Incorrect:</h3>
+
+<ul>
+<li>The confidence interval capturing the population parameter with a certain probability</li>
+<li>The confidence of capturing individual observations, a proportion of the observations, or point estimates</li>
+</ul>
+
+<h3>Correct:</h3>
+
+<ul>
+<li>Were this sampling procedure to be repeated on multiple samples, the calculated confidence interval (which would differ for each sample) would encompass the true population parameter 95% of the time.</li>
+<li>There is a 95% probability that the calculated confidence interval from some future experiment encompasses the true value of the population parameter.</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-10" style="background:;">
+  <hgroup>
+    <h2>Exercises</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li><p>Calculate \(SE_{\overline{mag}}\) of the \(quakes\_smp\) using sample standard deviation.</p></li>
+<li><p>What is 95% confidence interval?</p></li>
+<li><p>Create a 90% confidence interval?</p></li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-11" style="background:;">
+  <hgroup>
+    <h2>Bootstrap</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Suppose that we have a statistic that estimates some population parameter, but we don&#39;t know its sampling distribution</li>
+<li>The bootstrap principle suggests using the distribution defined by the data to approximate its sampling distribution</li>
+</ul>
+
+<ol>
+<li>Sample many data sets from the observed data with replacement </li>
+<li>Calculate the statistic for each simulated data set</li>
+<li>Use the simulated statistics to either define a confidence interval or take the standard deviation to calculate a standard error</li>
+</ol>
+
+<p>This is approximately drawing from the sampling distribution of that statistic, at least as far as the data is able to approximate the true population distribution</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-12" style="background:;">
+  <hgroup>
+    <h2>Example code</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">set.seed(23)
+median_bootstr &lt;- sapply(1:100500, function(x) { 
+  median(sample(quakes_smp$mag, 50, replace=T))
+})
+print(sd(median_bootstr))
+</code></pre>
+
+<pre><code>## [1] 0.07460419
+</code></pre>
+
+<pre><code class="r">print(quantile(median_bootstr, c(0.025, 0.975)))
+</code></pre>
+
+<pre><code>##  2.5% 97.5% 
+##   4.5   4.7
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-13" style="background:;">
+  <hgroup>
+    <h2>Histogram</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">set.seed(3)
+median_sampling &lt;- sapply(1:100500, function(x) median(sample(quakes$mag, 50)))
+par(mfrow=c(1,2))
+hist(median_bootstr, breaks=5, xlab=&quot;Median&quot;, main=&quot;Bootstrapped distribution&quot;)
+hist(median_sampling, breaks=5, xlab=&quot;Median&quot;, main=&quot;Sampling distribution&quot;)
+</code></pre>
+
+<p><img src="assets/fig/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-14" style="background:;">
+  <hgroup>
+    <h2>Hypothesis testing</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Students from the 2011 YRBSS lifted weights (or performed other strength training exercises) 3.09 days per week on average. Are students lifting weights or performing other strength training exercises more or less often in 2013 than they have in 2011?</p>
+
+<h3>Youth Risk Behavior Surveillance System dataset</h3>
+
+<pre><code class="r">str(yrbss.samp)
+</code></pre>
+
+<pre><code>## &#39;data.frame&#39;:    100 obs. of  13 variables:
+##  $ age                     : int  16 17 17 15 18 15 16 16 14 17 ...
+##  $ gender                  : chr  &quot;female&quot; &quot;male&quot; &quot;male&quot; &quot;male&quot; ...
+##  $ grade                   : chr  &quot;11&quot; &quot;11&quot; &quot;11&quot; &quot;10&quot; ...
+##  $ hispanic                : chr  &quot;not&quot; &quot;not&quot; &quot;not&quot; &quot;hispanic&quot; ...
+##  $ race                    : chr  &quot;Black or African American&quot; &quot;White&quot; &quot;White&quot; NA ...
+##  $ height                  : num  1.5 1.78 1.75 1.68 1.7 1.57 1.78 1.63 1.63 1.83 ...
+##  $ weight                  : num  52.6 74.8 106.6 66.7 80.3 ...
+##  $ helmet_12m              : chr  &quot;never&quot; &quot;rarely&quot; &quot;never&quot; &quot;never&quot; ...
+##  $ text_while_driving_30d  : chr  &quot;1-2&quot; &quot;0&quot; &quot;0&quot; &quot;did not drive&quot; ...
+##  $ physically_active_7d    : num  0 7 7 3 0 4 7 5 7 6 ...
+##  $ hours_tv_per_school_day : chr  &quot;4&quot; &quot;1&quot; &quot;2&quot; &quot;2&quot; ...
+##  $ strength_training_7d    : num  0 5 0 1 2 3 6 4 7 4 ...
+##  $ school_night_hours_sleep: chr  &quot;8&quot; &quot;7&quot; &quot;7&quot; &quot;5&quot; ...
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-15" style="background:;">
+  <hgroup>
+    <h2>Hypothesis testing framework</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The average days per week that YRBSS students lifted weights for 2011 and 2013 was:</p>
+
+<ul>
+<li>\(H_0\): Same (Null hypothesis)</li>
+<li>\(H_A\): Different (Alternative hypothesis)</li>
+</ul>
+
+<p>The skeptic will not reject the null hypothesis (\(H_0\)), unless the evidence in favor of the alternative hypothesis (\(H_A\)) is so strong that she rejects \(H_0\) in favor of \(H_A\). Failing to find strong evidence for the alternative hypothesis is not equivalent to accepting the null hypothesis.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-16" style="background:;">
+  <hgroup>
+    <h2>Hypothesis testing framework</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>\(H_0: \mu_{13} = 3.09\) Null value</li>
+<li>\(H_A: \mu_{13} \neq 3.09\) Null value</li>
+</ul>
+
+<pre><code class="r">mean(yrbss.samp$strength_training_7d)
+</code></pre>
+
+<pre><code>## [1] 2.78
+</code></pre>
+
+<p>However, to evaluate whether this provides strong evidence that there has been a change, we must consider the uncertainty associated with \(\mu_{13}\)</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-17" style="background:;">
+  <hgroup>
+    <h2>Testing hypotheses using confidence intervals</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>\(x_\overline{x} \pm z \times SE_\overline{x}\)</p>
+
+<pre><code class="r">htest &lt;- as.data.frame(
+  yrbss.samp %&gt;%
+  select(strength_training_7d) %&gt;%
+  summarise(avg=mean(strength_training_7d), 
+            se=mean(strength_training_7d) / sqrt(length(strength_training_7d)), 
+            lower=avg - 1.96 * se,
+            upper=avg + 1.96 * se,
+            num=length(strength_training_7d)))
+htest
+</code></pre>
+
+<pre><code>##    avg    se   lower   upper num
+## 1 2.78 0.278 2.23512 3.32488 100
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-18" style="background:;">
+  <hgroup>
+    <h2>Exercises</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol>
+<li>Colleges frequently provide estimates of student expenses such as housing. A consultant hired by a community college claimed that the average student housing expense was 650 dollars per month. What are the \(H_0\) and \(H_A\) to test whether this claim is accurate?</li>
+<li>The college decides to collect data to evaluate the claim. They take a random sample of 175 students. The sample mean for student housing is 621.91 dollars and the sample standard deviation is 125.34 dollars. Construct a 95% confidence interval for the population mean and evaluate the hypotheses.</li>
+</ol>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-19" style="background:;">
+  <hgroup>
+    <h2>Decision errors</h2>
+  </hgroup>
+  <article data-timings="">
+    <p><img src="assets/img/errors.png" alt="Error types"></p>
+
+<h3>What precisely does strong evidence mean?</h3>
+
+<p>As a general rule of thumb, for those cases where the null hypothesis is actually true, we do not want to incorrectly reject \(H_0\) more than 5% of the time.</p>
+
+<p>\(\alpha = 0.05\) - a significance level</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-20" style="background:;">
+  <hgroup>
+    <h2>p-value</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>Consider the following two cases:</p>
+
+<ul>
+<li>The null value is in the 95% confidence interval but just barely, so we would not reject \(H_0\). However, we might like to somehow say, quantitatively, that it was a close decision.</li>
+<li>The null value is very far outside of the interval, so we reject \(H_0\). However, we want to communicate that, not only did we reject the null hypothesis, but it wasn’t even close.</li>
+</ul>
+
+<p><img src="assets/img/htest.png" alt="Htest"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-21" style="background:;">
+  <hgroup>
+    <h2>p-value formal definition</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>\(P(X \geq x | H_0)\) for right tail event</li>
+<li>\(P(X \leq x | H_0)\) for left tail event</li>
+<li>\(2 min \{P(X \leq x | H_0), P(X \leq x | H_0)\}\) for double tail event</li>
+</ul>
+
+<p>The p-value is defined as the probability of obtaining a result equal to or more extreme than what was actually observed, under the assumption of hypothesis \(H_0\) is true.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-22" style="background:;">
+  <hgroup>
+    <h2>Example</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>A poll by the National Sleep Foundation found that college students average about 7 hours of sleep per night. Researchers at a rural school are interested in showing that students at their school sleep longer than seven hours on average, and they would like to demonstrate this using a sample of students. What would be an appropriate skeptical position for this research?</p>
+
+<ul>
+<li>\(H_0: \mu = 7\)</li>
+<li>\(H_A: \mu > 7\) - One-sided test</li>
+</ul>
+
+<p>Other options: </p>
+
+<ul>
+<li>\(H_A: \mu < 7\) - One-sided test</li>
+<li>\(H_A: \mu \neq 7\) - Two-sided test</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-23" style="background:;">
+  <hgroup>
+    <h2>Example</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>In the sleep study, they found that these students averaged 7.42 hours of sleep and the standard deviation of the amount of sleep was 1.75 hours. The sample size is 110.</li>
+<li>They use a simple random sample from less than 10% of the students.</li>
+<li>The hypothesis test for the sleep study will be evaluated using a significance level of \(\alpha = 0.05\)</li>
+</ul>
+
+<p>\(Z = \frac{\overline{x} - \text{null value}}{SE_{\overline{x}}}\)</p>
+
+<pre><code class="r">z = (7.42 - 7) / 0.17
+1 - pnorm(z)
+</code></pre>
+
+<pre><code>## [1] 0.006744552
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-24" style="background:;">
+  <hgroup>
+    <h2>Explanation</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>If the null hypothesis is true, the probability of observing a sample mean at least as large as 7.42 hours for a sample of 110 students is only 0.007.</p>
+
+<p><img src="assets/img/p-value.png" alt="p-value"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-25" style="background:;">
+  <hgroup>
+    <h2>Testing hypotheses using p-value intervals</h2>
+  </hgroup>
+  <article data-timings="">
+    <ol>
+<li>We are skeptical. We reject this position only if the evidence strongly favors \(H_A\)</li>
+<li>A small p-value means that if the \(H_0\) is true, there is a low probability of seeing a point estimate at least as extreme as we saw. This as strong evidence in favor of the \(H_A\)</li>
+<li>We reject the \(H_0\) if the p-value \(< \alpha\), usually 0.05. Otherwise, we fail to reject \(H_0\)</li>
+<li>We should always state the conclusion of the hypothesis test in plain language so non-statisticians can also understand the results</li>
+</ol>
+
+<p><img src="assets/img/p-value-test.png" alt="p-value-test"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-26" style="background:;">
+  <hgroup>
+    <h2>Exercises</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>If the null hypothesis is true, how often should the p-value be less than 0.05?</li>
+<li>Suppose we had used a significance level of 0.01 in the sleep study. Would the evidence have been strong enough to reject the null hypothesis? What if the significance level was \(\alpha = 0.001\)?</li>
+<li>Ebay might be interested in showing that buyers on its site tend to pay less than they would for the corresponding new item on Amazon. We’ll research this topic for one particular product: a video game called Mario Kart for the Nintendo Wii. During early October 2009, Amazon sold this game for 46.99 dollars. Set up an appropriate hypothesis test to check the claim that Ebay buyers pay less during auctions at this same time.</li>
+<li>The average sale price of the 58 Ebay auctions for Wii Mario Kart was 44.7 dollars with a standard deviation of 4.11 dollars. Does this provide suficient evidence to reject the \(H_0\)? Use \(\alpha = 0.01\)</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-27" style="background:;">
+  <hgroup>
+    <h2>Exercises</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li>Earlier we talked about a research group investigating whether the students at their school slept well at night. Let’s consider a second group of researchers who want to evaluate whether the students at their college differ from the norm of 8 hours. Write the null and alternative hypotheses for this investigation.</li>
+<li>The second college randomly samples 127 students and finds a mean of \(\overline{x} = 7.83\) hours and a standard deviation of 1.8 hours. Does this provide strong evidence against \(H_0\)? Use \(\alpha = 0.05\).</li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-28" style="background:;">
+  <hgroup>
+    <h2>Homework</h2>
+  </hgroup>
+  <article data-timings="">
+    <ul>
+<li><a href="http://htmlpreview.github.io/?https://github.com/andrewpbray/oiLabs-base-R/blob/master/sampling_distributions/sampling_distributions.html">Lab 5 - Foundations for statistical inference</a></li>
+<li>Skype Chat for discussions: <a href="https://join.skype.com/gjN0CfAd4bhg">https://join.skype.com/gjN0CfAd4bhg</a></li>
+<li>Reading: OpenIntro Statistics Chapter 4.</li>
+<li>Reference Book: <a href="https://www.openintro.org/stat/textbook.php">https://www.openintro.org/stat/textbook.php</a></li>
+<li><a href="https://en.wikipedia.org/wiki/Resampling_(statistics">Resampling methods</a></li>
+</ul>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Course Logistic'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Topics'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='Point estimates and variability'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Point estimates and variability'>
+         4
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=5 title='Point estimates and variability'>
+         5
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=6 title='Standard error of the mean: \(SE_{\overline{x}} = \frac{s}{\sqrt{n}}\)'>
+         6
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=7 title='95% confidence interval: \(\overline{x} \pm 1.96 \times SE_{\overline{x}}\)'>
+         7
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=8 title='What about practice?'>
+         8
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=9 title='Interpreting confidence intervals'>
+         9
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=10 title='Exercises'>
+         10
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=11 title='Bootstrap'>
+         11
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=12 title='Example code'>
+         12
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=13 title='Histogram'>
+         13
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=14 title='Hypothesis testing'>
+         14
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=15 title='Hypothesis testing framework'>
+         15
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=16 title='Hypothesis testing framework'>
+         16
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=17 title='Testing hypotheses using confidence intervals'>
+         17
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=18 title='Exercises'>
+         18
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=19 title='Decision errors'>
+         19
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=20 title='p-value'>
+         20
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=21 title='p-value formal definition'>
+         21
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=22 title='Example'>
+         22
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=23 title='Example'>
+         23
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=24 title='Explanation'>
+         24
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=25 title='Testing hypotheses using p-value intervals'>
+         25
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=26 title='Exercises'>
+         26
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=27 title='Exercises'>
+         27
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=28 title='Homework'>
+         28
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- MathJax: Fall back to local if CDN offline but local image fonts are not supported (saves >100MB) -->
+  <script type="text/x-mathjax-config">
+    MathJax.Hub.Config({
+      tex2jax: {
+        inlineMath: [['$','$'], ['\\(','\\)']],
+        processEscapes: true
+      }
+    });
+  </script>
+  <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <!-- <script src="https://c328740.ssl.cf1.rackcdn.com/mathjax/2.0-latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+  </script> -->
+  <script>window.MathJax || document.write('<script type="text/x-mathjax-config">MathJax.Hub.Config({"HTML-CSS":{imageFont:null}});<\/script><script src="libraries/widgets/mathjax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"><\/script>')
+</script>
+<!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
