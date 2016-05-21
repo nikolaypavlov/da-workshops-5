@@ -316,7 +316,7 @@ Consider the following two cases:
 
 * $P(X \geq x | H_0)$ for right tail event
 * $P(X \leq x | H_0)$ for left tail event
-* $2 min \{P(X \leq x | H_0), P(X \leq x | H_0)\}$ for double tail event
+* $2 min \{P(X \leq x | H_0), P(X \geq x | H_0)\}$ for double tail event
 
 The p-value is defined as the probability of obtaining a result equal to or more extreme than what was actually observed, under the assumption of hypothesis $H_0$ is true.
 
